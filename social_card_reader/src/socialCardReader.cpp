@@ -5,6 +5,9 @@
 #include <image_transport/image_transport.h>
 #include <std_msgs/String.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <dynamic_reconfigure/server.h>
+#include <social_card_reader/social_card_readerConfig.h>
+
 
 image_transport::Publisher imdebug;
 ros::Publisher command_pub;
@@ -29,6 +32,8 @@ int lastCommand = -1;
 int command = -1;
 float angle = 0;
 float  distanceTolerance = 0.2;
+float outerDimUser = 0.05;
+float outerDimMaster = 0.07;
 
 const char *commandName[] = {
 	"INFO_TERMINAL",
@@ -38,6 +43,16 @@ const char *commandName[] = {
 	"WAIT",
 	"UNKNOWN"
 };
+
+//parameter reconfiguration
+void reconfigureCallback(social_card_reader::social_card_readerConfig &config, uint32_t level) 
+{
+	ROS_INFO("Reconfigure Request: %lf %lf %lf %lf %lf %lf %lf", config.userDiameter, config.masterDiameter, config.initialCircularityTolerance, config.finalCircularityTolerance, config.areaRatioTolerance,config.centerDistanceToleranceRatio,config.centerDistanceToleranceAbs);
+	outerDimUser = config.userDiameter/100.0;
+	outerDimMaster = config.masterDiameter/100.0;
+	detector->reconfigure(config.initialCircularityTolerance, config.finalCircularityTolerance, config.areaRatioTolerance,config.centerDistanceToleranceRatio,config.centerDistanceToleranceAbs);
+}
+
 
 void grayImageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -121,13 +136,21 @@ int main(int argc, char** argv)
 	grayImage = new CRawImage(defaultImageWidth,defaultImageHeight,4);
 	depthImage = new CRawImage(defaultImageWidth,defaultImageHeight,4);
 	detector = new CCircleDetect(defaultImageWidth,defaultImageHeight);
-	photoTf = new CTransformation(0.05);
-	commandTf = new CTransformation(0.07);
+
+	//initialize dynamic reconfiguration feedback
+	dynamic_reconfigure::Server<social_card_reader::social_card_readerConfig> server;
+	dynamic_reconfigure::Server<social_card_reader::social_card_readerConfig>::CallbackType dynSer;
+	dynSer = boost::bind(&reconfigureCallback, _1, _2);
+	server.setCallback(dynSer);
+
+
+	photoTf = new CTransformation(outerDimUser);
+	commandTf = new CTransformation(outerDimMaster);
 	image_transport::Subscriber subimGray = it.subscribe("/head_xtion/rgb/image_mono", 1, grayImageCallback);
 	image_transport::Subscriber subimDepth = it.subscribe("/head_xtion/depth/image_raw", 1, depthImageCallback);
 	command_pub = n.advertise<std_msgs::String>("/socialCardReader/commands", 1);
 	pose_pub = n.advertise<geometry_msgs::PoseStamped>("/socialCardReader/cardposition", 1);
-	
+
 	while (ros::ok()){
 		ros::spinOnce();
 		usleep(30000);
