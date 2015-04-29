@@ -50,6 +50,7 @@ void reconfigureCallback(social_card_reader::social_card_readerConfig &config, u
 	ROS_INFO("Reconfigure Request: %lf %lf %lf %lf %lf %lf %lf", config.userDiameter, config.masterDiameter, config.initialCircularityTolerance, config.finalCircularityTolerance, config.areaRatioTolerance,config.centerDistanceToleranceRatio,config.centerDistanceToleranceAbs);
 	outerDimUser = config.userDiameter/100.0;
 	outerDimMaster = config.masterDiameter/100.0;
+	distanceTolerance = config.distanceTolerance/100.0;
 	detector->reconfigure(config.initialCircularityTolerance, config.finalCircularityTolerance, config.areaRatioTolerance,config.centerDistanceToleranceRatio,config.centerDistanceToleranceAbs);
 }
 
