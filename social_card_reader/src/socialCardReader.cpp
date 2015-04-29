@@ -6,7 +6,7 @@
 #include <std_msgs/String.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <dynamic_reconfigure/server.h>
-#include <social_card_reader/social_card_readerConfig.h>
+#include <social_card_reader/social_cardConfig.h>
 
 
 image_transport::Publisher imdebug;
@@ -45,7 +45,7 @@ const char *commandName[] = {
 };
 
 //parameter reconfiguration
-void reconfigureCallback(social_card_reader::social_card_readerConfig &config, uint32_t level) 
+void reconfigureCallback(social_card_reader::social_cardConfig &config, uint32_t level) 
 {
 	ROS_INFO("Reconfigure Request: %lf %lf %lf %lf %lf %lf %lf", config.userDiameter, config.masterDiameter, config.initialCircularityTolerance, config.finalCircularityTolerance, config.areaRatioTolerance,config.centerDistanceToleranceRatio,config.centerDistanceToleranceAbs);
 	outerDimUser = config.userDiameter/100.0;
@@ -139,8 +139,8 @@ int main(int argc, char** argv)
 	detector = new CCircleDetect(defaultImageWidth,defaultImageHeight);
 
 	//initialize dynamic reconfiguration feedback
-	dynamic_reconfigure::Server<social_card_reader::social_card_readerConfig> server;
-	dynamic_reconfigure::Server<social_card_reader::social_card_readerConfig>::CallbackType dynSer;
+	dynamic_reconfigure::Server<social_card_reader::social_cardConfig> server;
+	dynamic_reconfigure::Server<social_card_reader::social_cardConfig>::CallbackType dynSer;
 	dynSer = boost::bind(&reconfigureCallback, _1, _2);
 	server.setCallback(dynSer);
 

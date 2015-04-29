@@ -5,11 +5,12 @@ project(social_card_reader)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS  image_transport roscpp std_msgs geometry_msgs dynamic_reconfigure) 
-set ( CMAKE_CXX_FLAGS "-Ofast -march=native -mno-avx -ggdb")
 
 generate_dynamic_reconfigure_options(
 	cfg/social_card.cfg
 )
+
+set ( CMAKE_CXX_FLAGS "-Ofast -march=native -mno-avx -ggdb")
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
