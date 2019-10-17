@@ -1,0 +1,273 @@
+$def with (topic,  other_button, image_host, image_topic)
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+
+  <!-- The default styling is provided by http://getbootstrap.com -->
+  <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- jQuery and display.js are conveniences for interacting with the DOM -->
+  <script src="js/jquery.js"></script>
+  <script src="js/display.js"></script>
+  <script type="text/javascript" src="js/jquery-ui.js"></script>
+
+  <!-- ROSLIBJS -->
+  <!-- EventEmitter2 is the sole dependency of roslibjs -->
+  <script src="roslibjs/include/EventEmitter2/eventemitter2.js"></script>
+  <!-- Roslibjs handles core ROS functionality in the browser -->
+  <script src="roslibjs/build/roslib.js"></script>
+
+  <script type="text/javascript" type="text/javascript">
+
+  var hostname = location.hostname;
+
+  var ros = new ROSLIB.Ros({
+    url : 'ws://'+hostname+':9090'
+});
+
+  // rosout
+  var rosout = new ROSLIB.Topic({
+    ros : ros,
+    name : '/rosout_agg',
+    messageType : 'rosgraph_msgs/Log',
+    throttle_rate: 5.0
+});
+
+
+
+  rosoutMessages = []
+
+  rosout.subscribe(function(message) {
+    rosoutMessages[rosoutMessages.length] = message
+
+      // trim if it gets a bit long
+      if(rosoutMessages.length > 50 + 10) {
+        rosoutMessages = rosoutMessages.slice(10);
+    }
+
+    renderMessages(rosoutMessages);
+
+});
+
+
+  function classString(level) {
+
+    if(level == 16 || level == 8) {
+      return "danger";
+  }
+  else if(level == 4) {
+      return "warning";
+  }
+  else if(level == 1) {
+      return "active";
+  }
+  else {
+      return "";
+  }
+}
+
+function renderMessages (messages) {
+    table = "<table class=\"table\">";
+    for (var i = 0; i < messages.length; i++) {
+      table += "<tr class=\"" + classString(messages[i].level) + "\"><td>" + messages[i].name + "</td><td>" + messages[i].msg + "</td></tr>";
+  };
+  table += "</table>";
+
+  $$('#logRow').html(table);
+  $$('#logRow').scrollTop($$('#logRow')[0].scrollHeight);
+}
+
+  // battery level
+  var battery = new ROSLIB.Topic({
+    ros : ros,
+    name : '/battery_state',
+    messageType : 'scitos_msgs/BatteryState',
+    throttle_rate : 1,
+});
+
+  battery.subscribe(function(message) {
+    $$('#battery').html(message.lifePercent + "%");
+});
+
+
+// setup a listener for the schedule
+var schedule = new ROSLIB.Topic({
+  ros : ros,
+  name : '/current_schedule',
+  messageType : 'strands_executive_msgs/ExecutionStatus',
+  throttle_rate : 1,
+});
+
+
+
+schedule.subscribe(function(message) {
+  if(message.currently_executing || message.execution_queue.length > 0) {
+    if(message.currently_executing) {
+      $$('#exeStatus').html("Executing"); 
+      $$('#nextTask').html("Current Task"); 
+  }
+  else {
+   $$('#exeStatus').html("Pending");  
+   $$('#nextTask').html("Next Task");         
+}
+$$('#nextTaskDesc').html(message.execution_queue[0].action);
+$$('#nextTaskLoc').html(message.execution_queue[0].start_node_id); 
+}
+else {
+ $$('#exeStatus').html("No tasks");  
+}
+ $$('#queueLen').html(message.execution_queue.length);  
+
+
+});
+
+// setup a listener for the topological closestNode
+var closestNode = new ROSLIB.Topic({
+  ros : ros,
+  name : '/closest_node',
+  messageType : 'std_msgs/String',
+  throttle_rate : 1,
+});
+
+closestNode.subscribe(function(message) {
+    $$('#currentLoc').html(message.data);
+});
+
+
+
+ros.on('connection', function() {
+  console.log('Connected to websocket server.');
+});
+
+ros.on('error', function(error) {
+  console.log('Error connecting to websocket server: ', error);
+});
+
+ros.on('close', function() {
+  console.log('Connection to websocket server closed.');
+});
+
+  // var displayPage = new ROSLIB.Service({
+  //   ros : ros,
+  //   name : '/strands_webserver/display_page',
+  //   serviceType : 'strands_webserver/SetDisplay'
+  // });
+
+  //  function displayRelativePage(page) {
+
+  //   var request = new ROSLIB.ServiceRequest({});
+
+  //   // hardcode for now
+  //   toDisplay = 'http://localhost:8090/';
+
+  //   var request = new ROSLIB.ServiceRequest({
+  //     display_number : 0,
+  //     content : toDisplay + page
+  //   });
+
+  //   displayPage.callService(request, function(result) {
+  //     console.log('Result for service call on '
+  //       + displayPage.name
+  //       + ': '
+  //       + result.success);
+  // });
+  // }
+
+  // function tweetPicture() {
+
+  //   var goal = new ROSLIB.Goal({
+  //     actionClient : twitterClient,
+  //     goalMessage : {
+  //       text : 'Look who I just met...',
+  //       force : false,
+  //       topic : '$:topic'
+  //     }
+  //   });
+
+  // var camGoal = new ROSLIB.Goal({
+  //     actionClient : fakeCamera,
+  //     goalMessage : {}
+  //   });
+
+
+
+  //   goal.on('feedback', function(feedback) {
+  //     console.log('Feedback: ' + feedback);
+  //   });
+
+  //   goal.on('result', function(result) {
+  //     console.log('Final Result: ' + result);
+  //     // renable image stream and tweet button
+  //     $$('#imageStream').attr("src","http://localhost:8080/stream?topic=$:topic");
+  //     $$('#tweetButton').removeClass('disabled');      
+  //   });
+
+  //   goal.send();
+  //   // switch to image snapshot and disable button
+  //   $$('#imageStream').attr("src","http://localhost:8080/snapshot?topic=$:topic");
+  //   $$('#tweetButton').addClass('disabled');
+  // camGoal.send();
+  // }
+  </script>
+
+</head>
+
+<body>
+  <div class="container">
+    <br/>
+    <div class="row">
+      <div class="col-sm-1"></div>
+      <div class="col-sm-7"><img id="imageStream" class="center-block img-thumbnail" src="http://$:image_host:8080/stream?topic=$:topic"/></div> 
+      <div class="col-sm-3">
+        <dl class="dl-horizontal">
+
+
+          <dt>Location</dt>
+          <dd id="currentLoc"></dd>
+          
+          <dt>Battery:</dt>
+          <dd id="battery"></dd>
+          
+          <dt>Status:</dt>
+          <dd id="exeStatus"></dd>
+          
+          <dt id="nextTask"></dt>
+          <dd id="nextTaskDesc"></dd>
+
+
+          <dt>Target Location:</dt>
+          <dd id="nextTaskLoc"></dd>
+
+
+          <dt>Queued Tasks:</dt>
+          <dd id="queueLen"></dd>
+
+<!--           <dt>Visible People:</dt>
+          <dd>10</dd>
+          <dt>Visible People:</dt>
+          <dd>10</dd>
+ -->      </dl>
+  </div>
+  <div class="col-sm-1"></div>      
+</div>
+<br/>
+<div class="row">
+  <div class="col-sm-1"></div>
+  <div class="col-sm-10"  style="height:200px;overflow:auto;" id="logRow">
+
+  </div>
+  <div class="col-sm-1"></div>
+</div>
+    <div class="row">
+      <div class="col-sm-1"></div>
+      <div class="col-sm-4"></div>
+      <div class="col-sm-2"></div>
+      <div class="col-sm-4">$:other_button</div>
+      <div class="col-sm-1"></div>
+    </div>
+
+
+</div>      
+</body>
+</html>
